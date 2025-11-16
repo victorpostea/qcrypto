@@ -1,6 +1,6 @@
 # qcrypto
 
-**Version: 0.1.0**
+**Version: 0.1.1**
 
 `qcrypto` is a lightweight Python library providing simple, Pythonic wrappers around post-quantum cryptography (PQC) algorithms using the official `liboqs-python` bindings from the Open Quantum Safe project.
 
@@ -63,6 +63,11 @@ More complete usage examples are available in the `examples/` directory
 - Hybrid encryption uses AES-256-GCM.
 - Pure Python package, no compiled extensions.
 - Modern PEP 621 `src/` layout.
+
+## Coming Soon
+- Key Serialization
+- High-level Encryption API
+- Falcon, SPHINCS+
 
 ## Disclaimer
 This library is for educational, experimental, and research use.  
