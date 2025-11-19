@@ -3,3 +3,4 @@ venv
 *egg
 .pytest_cache
 dist
+*.key

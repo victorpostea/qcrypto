@@ -4,20 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qcrypto"
-version = "0.1.2"
+version = "0.2.0"
 description = "Quantum-safe cryptography utilities built on top of liboqs-python"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
 
 authors = [
-    { name = "Victor Postea" }
+    { name = "Victor Postea", email = "victorpostea@gmail.com" }
 ]
 
 dependencies = [
     "liboqs-python>=0.14.0",
     "cryptography>=41.0.0"
 ]
+
+[project.urls]
+Repository = "https://github.com/victorpostea/qcrypto"
 
 [tool.setuptools.packages.find]
 where = ["src"]

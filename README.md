@@ -43,20 +43,9 @@ pip install qcrypto
 
 This installs `liboqs-python` automatically.
 
-## Usage (brief) Example
+## Usage
 
-```
-from qcrypto import KyberKEM
-
-kem = KyberKEM("Kyber768")
-keys = kem.generate_keypair()
-
-ciphertext, ss1 = kem.encapsulate(keys.public_key)
-ss2 = kem.decapsulate(ciphertext)
-
-print("Shared secret match:", ss1 == ss2)
-```
-More complete usage examples are available in the `examples/` directory
+Usage examples are available in the `examples/` directory
 
 ## Implementation Notes
 - Uses `liboqs-python`, which bundles OQS C library implementations.
@@ -64,10 +53,25 @@ More complete usage examples are available in the `examples/` directory
 - Pure Python package, no compiled extensions.
 - Modern PEP 621 `src/` layout.
 
-## Coming Soon
-- Key Serialization
-- High-level Encryption API
-- Falcon, SPHINCS+
+## Changelog
+
+### v0.2.0 — Hybrid API Rewrite, Key Serialization, Ciphertext Format
+- Added `encrypt()` and `decrypt()` as the new high-level hybrid PQC API  
+- Introduced a single-blob ciphertext format:
+  - version byte  
+  - algorithm identifier  
+  - Kyber ciphertext length  
+  - Kyber ciphertext  
+  - AES-GCM nonce  
+  - AES-GCM ciphertext+tag  
+- Added key serialization helpers:
+  - `save_public_key()`, `save_private_key()`
+  - `KyberKEM.load_public_key()`, `KyberKEM.load_private_key()`
+- `decapsulate()` now accepts a private key directly  
+- Legacy API (`encrypt_for_recipient`, `decrypt_from_sender`) retained for compatibility  
+- Updated example usage and documentation  
+- Cleaned internal attribute naming (`private_key` rather than `secret_key`)
+
 
 ## Disclaimer
 This library is for educational, experimental, and research use.  
