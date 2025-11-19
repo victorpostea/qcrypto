@@ -38,12 +38,14 @@ def decrypt_from_sender(
 ) -> bytes:
     """
     Decrypts the message encrypted by encrypt_for_recipient.
-    Uses the recipient's stored Kyber secret key.
+    Uses the recipient's stored Kyber private key.
     """
     kem = KyberKEM()
-    kem._secret_key = recipient_keys.secret_key   # load SK manually
 
-    shared_secret = kem.decapsulate(kem_ciphertext)
+    shared_secret = kem.decapsulate(
+        kem_ciphertext,
+        private_key=recipient_keys.private_key
+    )
 
     key = _derive_aes_key(shared_secret)
     aesgcm = AESGCM(key)

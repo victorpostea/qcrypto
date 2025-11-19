@@ -2,47 +2,90 @@ from dataclasses import dataclass
 from typing import Tuple
 import oqs
 import ctypes as ct
+import base64
+from pathlib import Path
 
 
 @dataclass
 class KyberKeypair:
     public_key: bytes
-    secret_key: bytes
+    private_key: bytes
 
 
 class KyberKEM:
     def __init__(self, alg: str = "Kyber768"):
         self.alg = alg
-        self._secret_key = None
+        self._private_key = None
+        self._public_key = None
 
     def generate_keypair(self) -> KyberKeypair:
         with oqs.KeyEncapsulation(self.alg) as kem:
             public_key = kem.generate_keypair()
-            secret_key = kem.export_secret_key()
-            self._secret_key = secret_key
-            return KyberKeypair(public_key, secret_key)
+            private_key = kem.export_secret_key()
+            self._public_key = public_key
+            self._private_key = private_key
+            return KyberKeypair(public_key, private_key)
 
     def encapsulate(self, public_key: bytes) -> Tuple[bytes, bytes]:
         with oqs.KeyEncapsulation(self.alg) as kem:
             ct, ss = kem.encap_secret(public_key)
             return ct, ss
 
-    def decapsulate(self, ciphertext: bytes) -> bytes:
-        if self._secret_key is None:
-            raise ValueError("No secret key stored. Call generate_keypair() first.")
+    def decapsulate(self, ciphertext: bytes, private_key: bytes = None) -> bytes:
+        # Choose which key to use
+        if private_key is None:
+            if self._private_key is None:
+                raise ValueError(
+                    "No private key provided. Pass one in or call generate_keypair() first."
+                )
+            private_key = self._private_key
 
         with oqs.KeyEncapsulation(self.alg) as kem:
-            # Init internal buffers (required)
             kem.generate_keypair()
 
-            # Allocate the correct buffer for the SK
             sk_len = kem._kem.contents.length_secret_key
-            sk_buf = (ct.c_ubyte * sk_len)(*self._secret_key)
+            sk_buf = (ct.c_ubyte * sk_len)(*private_key)
 
-            # *** Critical: set correct attribute ***
             kem.secret_key = sk_buf
 
-            # Now decapsulate normally
-            shared_secret = kem.decap_secret(ciphertext)
-            return shared_secret
+            return kem.decap_secret(ciphertext)
 
+    # ---- Key Serialization
+
+    @staticmethod
+    def _encode(data: bytes, encoding: str) -> bytes:
+        if encoding == "raw":
+            return data
+        elif encoding == "base64":
+            return base64.b64encode(data)
+        else:
+            raise ValueError("encoding must be 'raw' or 'base64'")
+
+    @staticmethod
+    def _decode(data: bytes, encoding: str) -> bytes:
+        if encoding == "raw":
+            return data
+        elif encoding == "base64":
+            return base64.b64decode(data)
+        else:
+            raise ValueError("encoding must be 'raw' or 'base64'")
+
+    def save_public_key(self, path="public.key", encoding="raw"):
+        if self._public_key is None:
+            raise ValueError("Generate a keypair first.")
+        Path(path).write_bytes(self._encode(self._public_key, encoding))
+
+    def save_private_key(self, path="private.key", encoding="raw"):
+        if self._private_key is None:
+            raise ValueError("Generate a keypair first.")
+        Path(path).write_bytes(self._encode(self._private_key, encoding))
+
+    @staticmethod
+    def load_public_key(path="public.key", encoding="raw"):
+        data = Path(path).read_bytes()
+        return KyberKEM._decode(data, encoding)
+
+    @staticmethod
+    def load_private_key(path="private.key", encoding="raw"):
+        data = Path(path).read_bytes()
+        return KyberKEM._decode(data, encoding)

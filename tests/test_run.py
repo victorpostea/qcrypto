@@ -12,7 +12,12 @@ def test_kyber():
     kem = KyberKEM("Kyber768")
     keys = kem.generate_keypair()
 
-    ct, ss1 = kem.encapsulate(keys.public_key)
+    kem.save_public_key()
+    kem.save_private_key()
+
+    saved_pub_key = kem.load_public_key()
+
+    ct, ss1 = kem.encapsulate(saved_pub_key)
     ss2 = kem.decapsulate(ct)
     assert ss1 == ss2
 
