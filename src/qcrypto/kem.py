@@ -89,3 +89,29 @@ class KyberKEM:
     def load_private_key(path="private.key", encoding="raw"):
         data = Path(path).read_bytes()
         return KyberKEM._decode(data, encoding)
+
+class ClassicMcElieceKEM(KyberKEM):
+    """
+    Classic McEliece KEM wrapper.
+
+    Classic McEliece is provided by liboqs as a KEM, with algorithm
+    names such as:
+
+        "Classic-McEliece-348864"
+        "Classic-McEliece-348864f"
+        "Classic-McEliece-460896"
+        "Classic-McEliece-460896f"
+        "Classic-McEliece-6688128"
+        "Classic-McEliece-6688128f"
+        "Classic-McEliece-6960119"
+        "Classic-McEliece-6960119f"
+        "Classic-McEliece-8192128"
+        "Classic-McEliece-8192128f"
+
+    Default here is the 128 bit security level parameter set
+    "Classic-McEliece-348864". You can override it by passing any
+    other Classic McEliece algorithm string supported by your liboqs build.
+    """
+
+    def __init__(self, alg: str = "Classic-McEliece-348864"):
+        super().__init__(alg=alg)

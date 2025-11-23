@@ -1,85 +1,167 @@
 # qcrypto
 
-**Version: 0.2.1**
+**Version: 0.3.0**
 
-`qcrypto` is a lightweight Python library providing simple, Pythonic wrappers around post-quantum cryptography (PQC) algorithms using the official `liboqs-python` bindings from the Open Quantum Safe project.
+`qcrypto` is a lightweight Python library that provides simple, Pythonic wrappers around post-quantum cryptography (PQC) using the official `liboqs-python` bindings from the Open Quantum Safe project.
 
-The library currently includes:
+The library exposes unified, minimal interfaces for:
 
-- Kyber Key Encapsulation Mechanism (KEM)
-- Dilithium digital signatures
-- A hybrid PQC + AES-GCM encryption scheme
-- Clean utility classes and exception handling
+* Post-quantum key encapsulation (KEM)
+* Post-quantum digital signatures
+* A hybrid PQC + AES-GCM authenticated encryption scheme
 
-`qcrypto` is suitable for learning PQC, research, prototyping, and experiments involving quantum-safe primitives.
+`qcrypto` is suitable for learning PQC concepts, prototyping, research, and experimentation with quantum-safe primitives.
+
+---
 
 ## Features
 
-### Kyber KEM
-- Public/secret key generation
-- Encapsulation (ciphertext + shared secret)
-- Decapsulation (recover shared secret)
-- Supports Kyber512, Kyber768, Kyber1024
+### Post-Quantum Key Encapsulation (KEM)
 
-### Dilithium Signatures
-- Keypair generation
-- Message signing
-- Signature verification
-- Supports Dilithium2, Dilithium3, Dilithium5
+* **Kyber** (Kyber512 / Kyber768 / Kyber1024)
+* **Classic McEliece** (all parameter sets exposed by liboqs)
+* Public/secret key generation
+* Encapsulation → shared secret + ciphertext
+* Decapsulation → recover the same shared secret
 
-### Hybrid PQC + AES Encryption
-A simple hybrid model where:
-- Kyber encapsulates a symmetric key
-- AES-256-GCM encrypts the message
-- Result is `(kem_ciphertext, aes_ciphertext)`
+### Digital Signatures
+
+* **Dilithium** (2, 3, 5)
+* **Falcon** (Falcon-512, Falcon-1024)
+* **SPHINCS+** (SHA2 and SHAKE variants)
+* Unified signature interface:
+
+  * `SignatureScheme` for any liboqs signature algorithm
+  * Convenience wrappers: `DilithiumSig`, `FalconSig`, `SphincsSig`
+
+### Hybrid PQC + AES-256-GCM Encryption
+
+* Kyber encapsulates a shared secret
+* HKDF-SHA256 derives an AES key
+* AES-256-GCM encrypts the message
+* Compact single-blob ciphertext format:
+
+```
+[1 byte]  version  
+[1 byte]  algorithm id  
+[2 bytes] Kyber ciphertext length  
+[N bytes] Kyber ciphertext  
+[12 bytes] AES-GCM nonce  
+[M bytes] AES-GCM ciphertext+tag
+```
+
+High-level API:
+
+```python
+from qcrypto import encrypt, decrypt
+```
+
+Legacy API retained:
+
+```python
+encrypt_for_recipient()
+decrypt_from_sender()
+```
+
+### Key Serialization
+
+* `save_public_key()`, `save_private_key()`
+* `KyberKEM.load_public_key()`, `KyberKEM.load_private_key()`
+* Raw or base64 encoding
+
+---
 
 ## Installation
 
-Requires Python 3.8+.
+Python 3.8+:
 
 ```
 pip install qcrypto
 ```
 
-This installs `liboqs-python` automatically.
+`liboqs-python` installs automatically.
 
-## Usage
+---
 
-Usage examples are available in the `examples/` directory
+## Examples
+
+All examples are located in the `examples/` directory:
+
+* `kyber_example.py`
+* `mceliece_example.py`
+* `dilithium_example.py`
+* `falcon_example.py`
+* `sphincs_example.py`
+* `signature_scheme_generic_example.py`
+* `hybrid_example.py`
+* `list_algorithms.py`
+
+Run an example:
+
+```
+python examples/kyber_example.py
+```
+
+---
 
 ## Implementation Notes
-- Uses `liboqs-python`, which bundles OQS C library implementations.
-- Hybrid encryption uses AES-256-GCM.
-- Pure Python package, no compiled extensions.
-- Modern PEP 621 `src/` layout.
+
+* Uses `liboqs-python`, which bundles optimized C implementations of PQC algorithms.
+* AES-256-GCM provided by the `cryptography` package.
+* Available algorithms depend on how liboqs was compiled on your platform.
+* Hybrid encryption uses HKDF-SHA256 and fresh 96-bit GCM nonces.
+* Pure Python library using modern `src/` layout.
+
+---
 
 ## Changelog
 
-### v0.2.0 — Hybrid API Rewrite, Key Serialization, Ciphertext Format
-- Added `encrypt()` and `decrypt()` as the new high-level hybrid PQC API  
-- Introduced a single-blob ciphertext format:
-  - version byte  
-  - algorithm identifier  
-  - Kyber ciphertext length  
-  - Kyber ciphertext  
-  - AES-GCM nonce  
-  - AES-GCM ciphertext+tag  
-- Added key serialization helpers:
-  - `save_public_key()`, `save_private_key()`
-  - `KyberKEM.load_public_key()`, `KyberKEM.load_private_key()`
-- `decapsulate()` now accepts a private key directly  
-- Legacy API (`encrypt_for_recipient`, `decrypt_from_sender`) retained for compatibility  
-- Updated example usage and documentation  
-- Cleaned internal attribute naming (`private_key` rather than `secret_key`)
+### v0.3.0 — Expanded PQC Support
 
+**New Algorithms**
+
+* Falcon signatures (`FalconSig`)
+* SPHINCS+ signatures (`SphincsSig`)
+* Classic McEliece KEM (`ClassicMcElieceKEM`)
+
+**Unified Signature Interface**
+
+* Added `SignatureScheme` supporting any liboqs signature algorithm.
+
+**Examples**
+
+* Added Falcon, SPHINCS+, McEliece, and generic signature examples.
+
+**Internal Improvements**
+
+* Restructured signatures/KEMs for easier future expansion.
+
+---
+
+### v0.2.0 — Hybrid API Rewrite, Ciphertext Format, Key Serialization
+
+* Added new high-level hybrid `encrypt()` and `decrypt()`
+* Introduced standardized single-blob ciphertext format
+* Added key serialization helpers
+* Improved decapsulation API
+* Legacy API preserved for compatibility
+
+---
 
 ## Disclaimer
-This library is for educational, experimental, and research use.  
-It is not a production security component and has not undergone cryptographic review.
+
+This library is for educational, experimental, and research use.
+It has not undergone formal security review and should not be used in production systems.
+
+---
 
 ## License
+
 MIT License.
 
+---
+
 ## Resources
-- Open Quantum Safe Project: https://openquantumsafe.org
-- liboqs-python: https://github.com/open-quantum-safe/liboqs-python
+
+* Open Quantum Safe: [https://openquantumsafe.org](https://openquantumsafe.org)
+* liboqs-python: [https://github.com/open-quantum-safe/liboqs-python](https://github.com/open-quantum-safe/liboqs-python)
