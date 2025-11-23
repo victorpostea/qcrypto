@@ -1,4 +1,10 @@
 from qcrypto import DilithiumSig, KyberKEM, encrypt_for_recipient, decrypt_from_sender
+from qcrypto import (
+    FalconSig,
+    SphincsSig,
+    SignatureScheme,
+    ClassicMcElieceKEM,
+)
 
 def test_dilithium():
     sig = DilithiumSig("Dilithium3")
@@ -108,3 +114,50 @@ def test_reject_wrong_algo_id():
     except ValueError:
         pass
 
+def test_falcon_sign_verify():
+    sig = FalconSig("Falcon-512")
+    keys = sig.generate_keypair()
+
+    msg = b"falcon test message"
+    signature = sig.sign(keys.secret_key, msg)
+
+    assert sig.verify(keys.public_key, msg, signature)
+
+
+def test_sphincs_sign_verify():
+    sig = SphincsSig("SPHINCS+-SHA2-128f-simple")
+    keys = sig.generate_keypair()
+
+    msg = b"sphincs test"
+    signature = sig.sign(keys.secret_key, msg)
+
+    assert sig.verify(keys.public_key, msg, signature)
+
+
+def test_signature_scheme_generic_falcon():
+    scheme = SignatureScheme("Falcon-512")
+    keys = scheme.generate_keypair()
+
+    msg = b"generic falcon"
+    sig_bytes = scheme.sign(keys.secret_key, msg)
+
+    assert scheme.verify(keys.public_key, msg, sig_bytes)
+
+
+def test_signature_scheme_generic_sphincs():
+    scheme = SignatureScheme("SPHINCS+-SHA2-128f-simple")
+    keys = scheme.generate_keypair()
+
+    msg = b"generic sphincs"
+    sig_bytes = scheme.sign(keys.secret_key, msg)
+
+    assert scheme.verify(keys.public_key, msg, sig_bytes)
+
+def test_classic_mceliece_round_trip():
+    kem = ClassicMcElieceKEM()  # default = Classic-McEliece-348864
+    keys = kem.generate_keypair()
+
+    ct, ss1 = kem.encapsulate(keys.public_key)
+    ss2 = kem.decapsulate(ct, private_key=keys.private_key)
+
+    assert ss1 == ss2
