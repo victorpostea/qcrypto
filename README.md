@@ -1,6 +1,6 @@
 # qcrypto
 
-**Version: 0.3.0**
+**Version: 0.4.0**
 
 `qcrypto` is a lightweight Python library that provides simple, Pythonic wrappers around post-quantum cryptography (PQC) using the official `liboqs-python` bindings from the Open Quantum Safe project.
 
@@ -115,6 +115,34 @@ python examples/kyber_example.py
 ---
 
 ## Changelog
+
+### v0.4.0 — File Encryption & Streaming AES-GCM
+
+New Features
+------------
+
+• Added `encrypt_file()` and `decrypt_file()` for real file encryption workflows.
+• Introduced streaming AES-256-GCM, allowing encryption/decryption of large files
+  without loading the entire file into memory.
+• File ciphertext format matches the existing `encrypt()` API for full compatibility.
+
+Ciphertext Format
+-----------------
+
+[1 byte]    version
+[1 byte]    algorithm id
+[2 bytes]   Kyber ciphertext length
+[N bytes]   Kyber ciphertext
+[12 bytes]  AES-GCM nonce
+[M bytes]   AES-GCM ciphertext + 16-byte GCM tag
+
+Other Improvements
+------------------
+
+• Added round-trip file encryption tests.
+• Updated `__init__.py` to expose file encryption helpers.
+• Internal refactoring to support chunked I/O while preserving the
+  standardized hybrid ciphertext structure.
 
 ### v0.3.0 — Expanded PQC Support
 

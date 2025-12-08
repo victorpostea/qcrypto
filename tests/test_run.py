@@ -161,3 +161,45 @@ def test_classic_mceliece_round_trip():
     ss2 = kem.decapsulate(ct, private_key=keys.private_key)
 
     assert ss1 == ss2
+
+def test_file_encrypt_decrypt_round_trip(tmp_path):
+    """
+    Verify that encrypt_file() and decrypt_file() produce a perfect round trip.
+    """
+
+    from qcrypto import KyberKEM, encrypt_file, decrypt_file
+
+    # Prepare keys
+    kem = KyberKEM("Kyber768")
+    keys = kem.generate_keypair()
+
+    # Create a temporary plaintext file
+    plaintext = b"This is a test file for PQC hybrid encryption.\n" * 50
+    input_file = tmp_path / "input.txt"
+    encrypted_file = tmp_path / "encrypted.bin"
+    output_file = tmp_path / "output.txt"
+
+    input_file.write_bytes(plaintext)
+
+    # Encrypt → produces encrypted_file
+    encrypt_file(
+        public_key=keys.public_key,
+        input_path=str(input_file),
+        output_path=str(encrypted_file),
+    )
+
+    assert encrypted_file.exists()
+    assert encrypted_file.stat().st_size > 0
+
+    # Decrypt → produces output_file
+    decrypt_file(
+        private_key=keys.private_key,
+        input_path=str(encrypted_file),
+        output_path=str(output_file),
+    )
+
+    assert output_file.exists()
+
+    # Validate perfect match
+    recovered = output_file.read_bytes()
+    assert recovered == plaintext
