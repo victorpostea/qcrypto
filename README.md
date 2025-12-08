@@ -88,6 +88,7 @@ pip install qcrypto
 All examples are located in the `examples/` directory:
 
 * `kyber_example.py`
+* `files_example.py`
 * `mceliece_example.py`
 * `dilithium_example.py`
 * `falcon_example.py`
