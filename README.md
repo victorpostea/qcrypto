@@ -144,6 +144,8 @@ Other Improvements
 • Internal refactoring to support chunked I/O while preserving the
   standardized hybrid ciphertext structure.
 
+---
+
 ### v0.3.0 — Expanded PQC Support
 
 **New Algorithms**
