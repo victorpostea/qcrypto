@@ -24,6 +24,8 @@ from .hybrid import (
     decrypt,
     encrypt_for_recipient,
     decrypt_from_sender,
+    encrypt_file,
+    decrypt_file,
 )
 
 __all__ = [
@@ -44,7 +46,12 @@ __all__ = [
     "encrypt",
     "decrypt",
 
+    # File helpers (v0.4)
+    "encrypt_file",
+    "decrypt_file",
+
     # Legacy v0.1 API
     "encrypt_for_recipient",
     "decrypt_from_sender",
 ]
+
