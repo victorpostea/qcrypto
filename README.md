@@ -117,6 +117,38 @@ python examples/kyber_example.py
 
 ## Changelog
 
+### v0.5.0 — CLI Tooling & Passphrase-Protected Keys
+
+New Features
+------------
+
+• Added a full command-line interface (CLI) installed as `qcrypto`, providing:
+    - `qcrypto gen-key`   — Generate Kyber keypairs
+    - `qcrypto encrypt`   — Encrypt files using hybrid PQC + AES-GCM
+    - `qcrypto decrypt`   — Decrypt files back to plaintext
+
+• Added passphrase-based encryption for private keys using PBKDF2-HMAC-SHA256
+  and AES-256-GCM. Private keys can now be saved securely:
+
+      qcrypto gen-key --pass
+      qcrypto decrypt --key private.key --pass
+
+• CLI now supports interactive passphrase prompting or inline passphrase input.
+
+• Integrated passphrase logic with existing key serialization mechanisms.
+
+Other Improvements
+------------------
+
+• Added `files_example.py` demonstrating end-to-end CLI file encryption.
+
+• Internal refactoring of key loading/saving functions to support encrypted
+  and unencrypted key formats transparently.
+
+• Updated README with CLI usage examples and passphrase workflows.
+
+---
+
 ### v0.4.0 — File Encryption & Streaming AES-GCM
 
 New Features
