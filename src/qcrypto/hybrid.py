@@ -20,6 +20,7 @@ from .kem import KyberKEM, KyberKeypair
 
 VERSION = 1
 ALGO_ID_KYBER768 = 1 # extend later for other algorithms
+DEFAULT_CHUNK_SIZE = 64 * 1024  # 64 KiB
 
 
 def _derive_aes_key(shared_secret: bytes) -> bytes:
