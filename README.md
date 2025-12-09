@@ -1,6 +1,6 @@
 # qcrypto
 
-**Version: 0.4.2**
+**Version: 0.5.0**
 
 `qcrypto` is a lightweight Python library that provides simple, Pythonic wrappers around post-quantum cryptography (PQC) using the official `liboqs-python` bindings from the Open Quantum Safe project.
 

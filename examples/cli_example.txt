@@ -1,0 +1,16 @@
+Available CLI commands:
+
+gen-key
+encrypt
+decrypt
+
+Usage examples
+
+First generate key pairs:
+qcrypto gen-key --alg kyber768 --public pub.key --private priv.key
+
+Then to encrypt file:
+qcrypto encrypt --pub pub.key --in notes.txt --out notes.enc
+
+And finally decrypt file:
+qcrypto decrypt --key priv.key --in notes.enc --out notes.dec.txt
