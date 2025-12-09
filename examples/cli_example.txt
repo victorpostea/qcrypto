@@ -1,16 +1,33 @@
 Available CLI commands:
 
-gen-key
-encrypt
-decrypt
+  gen-key
+  encrypt
+  decrypt
 
 Usage examples
+--------------
 
-First generate key pairs:
-qcrypto gen-key --alg kyber768 --public pub.key --private priv.key
+Generate an unencrypted keypair:
+    qcrypto gen-key --alg kyber768 --public pub.key --private priv.key
 
-Then to encrypt file:
-qcrypto encrypt --pub pub.key --in notes.txt --out notes.enc
+Encrypt a file:
+    qcrypto encrypt --pub pub.key --in notes.txt --out notes.enc
 
-And finally decrypt file:
-qcrypto decrypt --key priv.key --in notes.enc --out notes.dec.txt
+Decrypt a file:
+    qcrypto decrypt --key priv.key --in notes.enc --out notes.dec.txt
+
+
+Passphrase-protected keys
+-------------------------
+
+Generate a keypair encrypted with a passphrase (inline):
+    qcrypto gen-key --alg kyber768 --public pub.key --private priv.key --pass "mypassword"
+
+Generate a keypair and prompt securely for the passphrase:
+    qcrypto gen-key --alg kyber768 --public pub.key --private priv.key --pass
+
+Decrypt a file using a passphrase-protected private key:
+    qcrypto decrypt --key priv.key --pass "mypassword" --in notes.enc --out notes.dec.txt
+
+Decrypt and prompt for passphrase interactively:
+    qcrypto decrypt --key priv.key --pass --in notes.enc --out notes.dec.txt

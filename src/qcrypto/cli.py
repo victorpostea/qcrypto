@@ -1,11 +1,10 @@
 import argparse
 import sys
 from pathlib import Path
+from getpass import getpass
 
 from . import (
     KyberKEM,
-    encrypt,
-    decrypt,
     encrypt_file,
     decrypt_file,
 )
@@ -23,12 +22,19 @@ def cmd_gen_key(args):
     pub_path = Path(args.public)
     priv_path = Path(args.private)
 
+    # Ask for passphrase if flag provided without one
+    passphrase = args.password
+    if args.password is True:  # user passed --pass with no value
+        passphrase = getpass("Enter passphrase for private key: ")
+
     kem.save_public_key(pub_path)
-    kem.save_private_key(priv_path)
+    kem.save_private_key(priv_path, passphrase=passphrase)
 
     print(f"Generated Kyber768 keypair:")
     print(f"  Public key:  {pub_path}")
     print(f"  Private key: {priv_path}")
+    if passphrase:
+        print("  (private key encrypted with passphrase)")
 
 
 def cmd_encrypt(args):
@@ -46,7 +52,14 @@ def cmd_encrypt(args):
 
 
 def cmd_decrypt(args):
-    priv = Path(args.key).read_bytes()
+    # Handle passphrase input
+    passphrase = args.password
+    if args.password is True:
+        passphrase = getpass("Passphrase: ")
+
+    # Load private key using KEM loader
+    priv = KyberKEM.load_private_key(args.key, passphrase=passphrase)
+
     input_path = Path(args.input)
     output_path = Path(args.output)
 
@@ -72,6 +85,13 @@ def main():
     gen.add_argument("--alg", default="kyber768")
     gen.add_argument("--public", default="public.key")
     gen.add_argument("--private", default="private.key")
+    gen.add_argument(
+        "--pass",
+        dest="password",
+        nargs="?",
+        const=True,  # --pass with no value triggers prompt
+        help="Encrypt private key with a passphrase"
+    )
     gen.set_defaults(func=cmd_gen_key)
 
     # encrypt
@@ -86,6 +106,13 @@ def main():
     dec.add_argument("--key", required=True)
     dec.add_argument("--in", dest="input", required=True)
     dec.add_argument("--out", dest="output", required=True)
+    dec.add_argument(
+        "--pass",
+        dest="password",
+        nargs="?",
+        const=True,
+        help="Passphrase for encrypted private key"
+    )
     dec.set_defaults(func=cmd_decrypt)
 
     # Parse + dispatch

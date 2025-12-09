@@ -4,6 +4,8 @@ import oqs
 import ctypes as ct
 import base64
 from pathlib import Path
+from .keywrap import encrypt_private_key, decrypt_private_key
+from typing import Optional
 
 
 @dataclass
@@ -75,10 +77,32 @@ class KyberKEM:
             raise ValueError("Generate a keypair first.")
         Path(path).write_bytes(self._encode(self._public_key, encoding))
 
-    def save_private_key(self, path="private.key", encoding="raw"):
+    def save_private_key(
+        self,
+        path: str = "private.key",
+        encoding: str = "raw",
+        passphrase: Optional[str] = None,
+    ):
+        """
+        Save private key to disk.
+        If passphrase is provided, encrypt the raw private key before writing.
+        Encoding applies only to unencrypted keys.
+        """
+
         if self._private_key is None:
             raise ValueError("Generate a keypair first.")
-        Path(path).write_bytes(self._encode(self._private_key, encoding))
+
+        key_bytes = self._private_key
+
+        if passphrase:
+            # Encrypt raw key (encoding ignored — encrypted keys are binary)
+            key_bytes = encrypt_private_key(key_bytes, passphrase)
+        else:
+            # Apply raw/base64 encoding only when NOT encrypted
+            key_bytes = self._encode(key_bytes, encoding)
+
+        Path(path).write_bytes(key_bytes)
+
 
     @staticmethod
     def load_public_key(path="public.key", encoding="raw"):
@@ -86,8 +110,24 @@ class KyberKEM:
         return KyberKEM._decode(data, encoding)
 
     @staticmethod
-    def load_private_key(path="private.key", encoding="raw"):
+    def load_private_key(
+        path: str = "private.key",
+        encoding: str = "raw",
+        passphrase: Optional[str] = None,
+    ) -> bytes:
+        """
+        Load a private key from disk.
+        If passphrase is provided, attempt decrypting the encrypted key.
+        If not encrypted, fall back to raw/base64 decoding.
+        """
+
         data = Path(path).read_bytes()
+
+        if passphrase:
+            # Try decrypting as a passphrase-protected key
+            return decrypt_private_key(data, passphrase)
+
+        # Otherwise treat as standard raw/base64 key
         return KyberKEM._decode(data, encoding)
 
 class ClassicMcElieceKEM(KyberKEM):
