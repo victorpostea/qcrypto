@@ -5,3 +5,4 @@ venv
 dist
 *.key
 __pycache__
+.ds_store
