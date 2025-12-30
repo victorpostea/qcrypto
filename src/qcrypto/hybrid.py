@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from .kem import KyberKEM, KyberKeypair
+from .armor import armor_encode, armor_decode
 
 
 # Ciphertext format:
@@ -296,3 +297,11 @@ def decrypt_file(
 
             # Will raise if tag does not verify
             decryptor.finalize()
+
+def encrypt_message_armored(public_key: bytes, plaintext: bytes) -> str:
+    ct = encrypt(public_key, plaintext)
+    return armor_encode("QCRYPTO MESSAGE", ct)
+
+def decrypt_message_armored(private_key: bytes, armored: str) -> bytes:
+    label, raw = armor_decode(armored, expected_label="QCRYPTO MESSAGE")
+    return decrypt(private_key, raw)

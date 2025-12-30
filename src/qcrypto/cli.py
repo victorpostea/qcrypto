@@ -60,12 +60,17 @@ def cmd_gen_key(args):
     if args.password is True:  # user passed --pass with no value
         passphrase = getpass("Enter passphrase for private key: ")
 
-    kem.save_public_key(pub_path)
-    kem.save_private_key(priv_path, passphrase=passphrase)
+    # armored flag support
+    encoding = "armor" if args.armored else "raw"
+
+    kem.save_public_key(pub_path, encoding=encoding)
+    kem.save_private_key(priv_path, encoding=encoding, passphrase=passphrase)
 
     print("Generated Kyber768 keypair:")
     print(f"  Public key:  {pub_path}")
     print(f"  Private key: {priv_path}")
+    if args.armored:
+        print("  (ASCII-armored)")
     if passphrase:
         print("  (private key encrypted with passphrase)")
 
@@ -112,6 +117,7 @@ def cmd_decrypt(args):
         passphrase = getpass("Passphrase: ")
 
     # Load private key using KEM loader
+    # Note: load_private_key auto-detects ASCII armor
     priv = KyberKEM.load_private_key(str(priv_path), passphrase=passphrase)
 
     input_path = Path(args.input)
@@ -140,6 +146,11 @@ def main():
     # If omitted, defaults to ~/.qcrypto/public.key and ~/.qcrypto/private.key
     gen.add_argument("--public", default=None)
     gen.add_argument("--private", default=None)
+    gen.add_argument(
+        "--armored",
+        action="store_true",
+        help="Save keys in ASCII-armored format (BEGIN/END blocks)",
+    )
     gen.add_argument(
         "--force",
         action="store_true",
