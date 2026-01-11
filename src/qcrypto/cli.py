@@ -266,7 +266,7 @@ def cmd_sign(args):
 
     msg = input_path.read_bytes()
     scheme = SignatureScheme(alg)
-    sig_bytes = scheme.sign(msg, sk)
+    sig_bytes = scheme.sign(sk, msg)
 
     out_path = Path(args.output)
     save_signature(str(out_path), sig_bytes, alg=alg, armored=args.armored)
@@ -320,7 +320,7 @@ def cmd_verify(args):
 
     msg = input_path.read_bytes()
     scheme = SignatureScheme(alg)
-    ok = scheme.verify(msg, sig_bytes, pk)
+    ok = scheme.verify(pk, msg, sig_bytes)
 
     print(f"Public key fingerprint: {fp}")
 

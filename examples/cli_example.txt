@@ -1,33 +1,130 @@
-Available CLI commands:
+qcrypto CLI Reference
+=====================
 
-  gen-key
-  encrypt
-  decrypt
+Available commands:
+  gen-key      Generate Kyber keypair for encryption
+  sig-gen-key  Generate signature keypair (Dilithium/Falcon/SPHINCS+)
+  encrypt      Encrypt a file
+  decrypt      Decrypt a file
+  sign         Sign a file
+  verify       Verify a signature
 
-Usage examples
+
+Default Key Paths
+-----------------
+
+qcrypto automatically uses these paths when --key/--pub are not specified:
+
+  Encryption keys:  ~/.qcrypto/kem/private.key
+                    ~/.qcrypto/kem/public.key
+
+  Signature keys:   ~/.qcrypto/sig/private.key
+                    ~/.qcrypto/sig/public.key
+
+
+Key Generation
 --------------
 
-Generate an unencrypted keypair:
-    qcrypto gen-key --alg kyber768 --public pub.key --private priv.key
+Generate Kyber keypair (default paths):
+    qcrypto gen-key
 
-Encrypt a file:
-    qcrypto encrypt --pub pub.key --in notes.txt --out notes.enc
+Generate with custom paths:
+    qcrypto gen-key --public pub.key --private priv.key
 
-Decrypt a file:
-    qcrypto decrypt --key priv.key --in notes.enc --out notes.dec.txt
+Generate ASCII-armored keys:
+    qcrypto gen-key --armored
+
+Generate with passphrase protection:
+    qcrypto gen-key --pass
+
+Generate with passphrase (inline):
+    qcrypto gen-key --pass "mypassword"
+
+Overwrite existing keys:
+    qcrypto gen-key --force
 
 
-Passphrase-protected keys
--------------------------
+Signature Key Generation
+------------------------
 
-Generate a keypair encrypted with a passphrase (inline):
-    qcrypto gen-key --alg kyber768 --public pub.key --private priv.key --pass "mypassword"
+Generate Dilithium keypair (default):
+    qcrypto sig-gen-key
 
-Generate a keypair and prompt securely for the passphrase:
-    qcrypto gen-key --alg kyber768 --public pub.key --private priv.key --pass
+Generate Falcon keypair:
+    qcrypto sig-gen-key --alg Falcon-512
 
-Decrypt a file using a passphrase-protected private key:
-    qcrypto decrypt --key priv.key --pass "mypassword" --in notes.enc --out notes.dec.txt
+Generate SPHINCS+ keypair with armoring:
+    qcrypto sig-gen-key --alg "SPHINCS+-SHA2-128f-simple" --armored
 
-Decrypt and prompt for passphrase interactively:
-    qcrypto decrypt --key priv.key --pass --in notes.enc --out notes.dec.txt
+With passphrase protection:
+    qcrypto sig-gen-key --alg Dilithium3 --pass
+
+
+Encryption / Decryption
+-----------------------
+
+Encrypt a file (uses default public key):
+    qcrypto encrypt --in document.pdf --out document.pdf.enc
+
+Encrypt with specific public key:
+    qcrypto encrypt --pub recipient.pub --in notes.txt --out notes.enc
+
+Decrypt a file (uses default private key):
+    qcrypto decrypt --in document.pdf.enc --out document.pdf
+
+Decrypt with passphrase-protected key:
+    qcrypto decrypt --pass --in notes.enc --out notes.txt
+
+Decrypt with specific key and passphrase:
+    qcrypto decrypt --key priv.key --pass "mypassword" --in notes.enc --out notes.txt
+
+
+Digital Signatures
+------------------
+
+Sign a file (uses default signature key):
+    qcrypto sign --in message.txt --out message.sig
+
+Sign with specific key:
+    qcrypto sign --key signing.key --in document.pdf --out document.sig
+
+Sign with armored output:
+    qcrypto sign --in message.txt --out message.sig --armored
+
+Sign with passphrase-protected key:
+    qcrypto sign --pass --in message.txt --out message.sig
+
+Verify a signature (uses default public key):
+    qcrypto verify --in message.txt --sig message.sig
+
+Verify with specific public key:
+    qcrypto verify --pub signer.pub --in document.pdf --sig document.sig
+
+
+Typical Workflows
+-----------------
+
+1. First-time setup (encryption):
+
+    qcrypto gen-key --armored --pass
+    # Keys saved to ~/.qcrypto/kem/
+
+2. First-time setup (signatures):
+
+    qcrypto sig-gen-key --alg Dilithium3 --armored --pass
+    # Keys saved to ~/.qcrypto/sig/
+
+3. Encrypt a file for yourself:
+
+    qcrypto encrypt --in secrets.txt --out secrets.enc
+    qcrypto decrypt --pass --in secrets.enc --out secrets.txt
+
+4. Sign and verify a document:
+
+    qcrypto sign --pass --in contract.pdf --out contract.sig
+    qcrypto verify --in contract.pdf --sig contract.sig
+
+5. Share your public key (it's ASCII-armored, so copy/paste friendly):
+
+    cat ~/.qcrypto/kem/public.key
+    cat ~/.qcrypto/sig/public.key

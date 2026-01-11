@@ -1,6 +1,6 @@
 # qcrypto
 
-**Version: 0.5.0**
+**Version: 1.0.0**
 
 `qcrypto` is a lightweight Python library that provides simple, Pythonic wrappers around post-quantum cryptography (PQC) using the official `liboqs-python` bindings from the Open Quantum Safe project.
 
@@ -9,6 +9,7 @@ The library exposes unified, minimal interfaces for:
 * Post-quantum key encapsulation (KEM)
 * Post-quantum digital signatures
 * A hybrid PQC + AES-GCM authenticated encryption scheme
+* A complete command-line interface (CLI)
 
 `qcrypto` is suitable for learning PQC concepts, prototyping, research, and experimentation with quantum-safe primitives.
 
@@ -33,18 +34,20 @@ The library exposes unified, minimal interfaces for:
 
   * `SignatureScheme` for any liboqs signature algorithm
   * Convenience wrappers: `DilithiumSig`, `FalconSig`, `SphincsSig`
+* CLI support for signing and verifying files
 
 ### Hybrid PQC + AES-256-GCM Encryption
 
 * Kyber encapsulates a shared secret
 * HKDF-SHA256 derives an AES key
 * AES-256-GCM encrypts the message
-* Compact single-blob ciphertext format:
+* Compact single-blob ciphertext format with integrity checksum:
 
 ```
 [1 byte]  version  
 [1 byte]  algorithm id  
 [2 bytes] Kyber ciphertext length  
+[4 bytes] CRC32 header checksum (v2)
 [N bytes] Kyber ciphertext  
 [12 bytes] AES-GCM nonce  
 [M bytes] AES-GCM ciphertext+tag
@@ -63,11 +66,42 @@ encrypt_for_recipient()
 decrypt_from_sender()
 ```
 
+### ASCII-Armored Keys and Messages
+
+Human-readable, copy/paste friendly format:
+
+```
+-----BEGIN QCRYPTO PUBLIC KEY-----
+(base64 payload)
+-----END QCRYPTO PUBLIC KEY-----
+```
+
+Supported for keys, encrypted private keys, signatures, and messages.
+
+### Key Fingerprints
+
+Stable key identity derived from `SHA256(pubkey)[:16]`:
+
+```python
+from qcrypto import key_fingerprint
+fp = key_fingerprint(public_key)  # 32-char hex string
+```
+
 ### Key Serialization
 
 * `save_public_key()`, `save_private_key()`
 * `KyberKEM.load_public_key()`, `KyberKEM.load_private_key()`
-* Raw or base64 encoding
+* Raw, base64, or ASCII-armored encoding
+* Passphrase-protected private keys (PBKDF2 + AES-GCM)
+
+### Default Key Paths
+
+Like OpenSSH (`~/.ssh/`) or GPG (`~/.gnupg/`), qcrypto uses:
+
+* `~/.qcrypto/kem/private.key` and `~/.qcrypto/kem/public.key` for encryption keys
+* `~/.qcrypto/sig/private.key` and `~/.qcrypto/sig/public.key` for signature keys
+
+The CLI automatically uses these paths when `--key`/`--pub` are not specified.
 
 ---
 
@@ -83,19 +117,69 @@ pip install qcrypto
 
 ---
 
+## CLI Usage
+
+The `qcrypto` command-line tool provides a complete PQC toolkit:
+
+### Key Generation
+
+```bash
+# Generate Kyber keypair (uses default paths ~/.qcrypto/kem/)
+qcrypto gen-key
+
+# Generate with custom paths
+qcrypto gen-key --public pub.key --private priv.key
+
+# Generate ASCII-armored keys
+qcrypto gen-key --armored
+
+# Generate with passphrase protection
+qcrypto gen-key --pass
+```
+
+### Encryption / Decryption
+
+```bash
+# Encrypt a file (uses default public key)
+qcrypto encrypt --in document.pdf --out document.pdf.enc
+
+# Decrypt a file (uses default private key)
+qcrypto decrypt --in document.pdf.enc --out document.pdf
+
+# With passphrase-protected key
+qcrypto decrypt --pass --in document.pdf.enc --out document.pdf
+```
+
+### Digital Signatures
+
+```bash
+# Generate signature keypair (Dilithium, Falcon, or SPHINCS+)
+qcrypto sig-gen-key --alg Dilithium3
+qcrypto sig-gen-key --alg Falcon-512 --armored
+
+# Sign a file
+qcrypto sign --in message.txt --out message.sig
+
+# Verify a signature
+qcrypto verify --in message.txt --sig message.sig
+```
+
+---
+
 ## Examples
 
 All examples are located in the `examples/` directory:
 
-* `kyber_example.py`
-* `files_example.py`
-* `mceliece_example.py`
-* `dilithium_example.py`
-* `falcon_example.py`
-* `sphincs_example.py`
-* `signature_scheme_generic_example.py`
-* `hybrid_example.py`
-* `list_algorithms.py`
+* `kyber_example.py` — Kyber KEM key generation and encapsulation
+* `hybrid_example.py` — High-level hybrid encryption API
+* `files_example.py` — File encryption workflow
+* `dilithium_example.py` — Dilithium signatures
+* `falcon_example.py` — Falcon signatures
+* `sphincs_example.py` — SPHINCS+ signatures
+* `signature_scheme_generic_example.py` — Generic signature interface
+* `mceliece_example.py` — Classic McEliece KEM
+* `list_algorithms.py` — List all available liboqs algorithms
+* `cli_example.txt` — CLI command reference
 
 Run an example:
 
@@ -117,35 +201,84 @@ python examples/kyber_example.py
 
 ## Changelog
 
-### v0.5.0 — CLI Tooling & Passphrase-Protected Keys
+### v1.0.0 — Stable Release
 
-New Features
-------------
+This release marks qcrypto as production-ready for experimental and research use.
 
-• Added a full command-line interface (CLI) installed as `qcrypto`, providing:
-    - `qcrypto gen-key`   — Generate Kyber keypairs
-    - `qcrypto encrypt`   — Encrypt files using hybrid PQC + AES-GCM
-    - `qcrypto decrypt`   — Decrypt files back to plaintext
+• All features from v0.5.0 are stable and tested.
 
-• Added passphrase-based encryption for private keys using PBKDF2-HMAC-SHA256
-  and AES-256-GCM. Private keys can now be saved securely:
+• No breaking API changes from v0.5.0.
 
-      qcrypto gen-key --pass
-      qcrypto decrypt --key private.key --pass
+---
 
-• CLI now supports interactive passphrase prompting or inline passphrase input.
+### v0.5.0 — Complete PQC Toolkit
 
-• Integrated passphrase logic with existing key serialization mechanisms.
+**Key Discovery & Default Keypaths**
 
-Other Improvements
-------------------
+Keys are now automatically discovered at default locations:
 
-• Added `files_example.py` demonstrating end-to-end CLI file encryption.
+- `~/.qcrypto/kem/private.key` and `~/.qcrypto/kem/public.key` for encryption
+- `~/.qcrypto/sig/private.key` and `~/.qcrypto/sig/public.key` for signatures
 
-• Internal refactoring of key loading/saving functions to support encrypted
-  and unencrypted key formats transparently.
+This follows conventions from OpenSSH (`~/.ssh/`), age, and GPG.
 
-• Updated README with CLI usage examples and passphrase workflows.
+**ASCII-Armored Key Format**
+
+Human-readable, copy/paste friendly keys and messages:
+
+```
+-----BEGIN QCRYPTO PRIVATE KEY-----
+(base64 payload)
+-----END QCRYPTO PRIVATE KEY-----
+```
+
+```
+-----BEGIN QCRYPTO MESSAGE-----
+(base64 payload)
+-----END QCRYPTO MESSAGE-----
+```
+
+Use `--armored` flag in CLI or `encoding="armor"` in Python.
+
+**Digital Signatures via CLI**
+
+New `qcrypto sign` and `qcrypto verify` commands:
+
+```bash
+qcrypto sign --key priv.key --in message.txt --out message.sig
+qcrypto verify --pub pub.key --in message.txt --sig message.sig
+```
+
+Supports Dilithium, Falcon, and SPHINCS+ algorithms.
+
+**Key Fingerprints**
+
+Stable key identity derived from public key:
+
+```python
+from qcrypto import key_fingerprint
+fp = key_fingerprint(public_key)  # SHA256(pubkey)[:16] as hex
+```
+
+Fingerprints are displayed in CLI output for verification.
+
+**Header Checksums**
+
+Ciphertext format v2 includes CRC32 checksum for nicer error messages:
+
+- Detects corrupted headers
+- Distinguishes wrong algorithm from file corruption
+- Identifies truncated files early
+
+**Other Improvements**
+
+• Full CLI with `gen-key`, `encrypt`, `decrypt`, `sig-gen-key`, `sign`, `verify`
+
+• Passphrase-protected private keys (PBKDF2-HMAC-SHA256 + AES-GCM)
+
+• Interactive passphrase prompting
+
+• `encrypt_message_armored()` and `decrypt_message_armored()` helpers
 
 ---
 

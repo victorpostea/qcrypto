@@ -15,6 +15,14 @@ from qcrypto import (
     encrypt_file,
     decrypt_file,
     key_fingerprint,
+    encrypt_message_armored,
+    decrypt_message_armored,
+    save_signature_public_key,
+    load_signature_public_key,
+    save_signature_private_key,
+    load_signature_private_key,
+    save_signature,
+    load_signature,
 )
 
 # Expected wire-format constants (per your hybrid.py header)
@@ -315,3 +323,79 @@ def test_file_encrypt_decrypt_round_trip(tmp_path):
 
     assert output_file.exists()
     assert output_file.read_bytes() == plaintext
+
+
+def test_armored_message_round_trip():
+    """Test encrypt_message_armored and decrypt_message_armored."""
+    kem = KyberKEM("Kyber768")
+    keys = kem.generate_keypair()
+
+    plaintext = b"This is a secret message for armored transport."
+
+    armored = encrypt_message_armored(keys.public_key, plaintext)
+
+    # Check it's properly formatted
+    assert armored.startswith("-----BEGIN QCRYPTO MESSAGE-----")
+    assert armored.strip().endswith("-----END QCRYPTO MESSAGE-----")
+
+    recovered = decrypt_message_armored(keys.private_key, armored)
+    assert recovered == plaintext
+
+
+def test_signature_file_serialization_round_trip(tmp_path):
+    """Test save/load for signature keys and signatures."""
+    alg = "Dilithium3"
+    scheme = SignatureScheme(alg)
+    keys = scheme.generate_keypair()
+
+    pub_path = tmp_path / "sig.pub"
+    priv_path = tmp_path / "sig.key"
+    sig_path = tmp_path / "message.sig"
+
+    # Save keys
+    save_signature_public_key(str(pub_path), keys.public_key, alg, armored=True)
+    save_signature_private_key(str(priv_path), keys.secret_key, alg, armored=True)
+
+    # Load keys
+    loaded_alg, loaded_pk = load_signature_public_key(str(pub_path))
+    loaded_alg2, loaded_sk = load_signature_private_key(str(priv_path))
+
+    assert loaded_alg == alg
+    assert loaded_alg2 == alg
+    assert loaded_pk == keys.public_key
+    assert loaded_sk == keys.secret_key
+
+    # Sign with loaded key
+    msg = b"Test message for signature serialization"
+    sig_bytes = scheme.sign(loaded_sk, msg)
+
+    # Save and load signature
+    save_signature(str(sig_path), sig_bytes, alg, armored=True)
+    sig_alg, loaded_sig = load_signature(str(sig_path))
+
+    assert sig_alg == alg
+    assert loaded_sig == sig_bytes
+
+    # Verify with loaded key and signature
+    assert scheme.verify(loaded_pk, msg, loaded_sig)
+
+
+def test_signature_scheme_parameter_order():
+    """
+    Regression test: ensure sign(secret_key, message) and
+    verify(public_key, message, signature) parameter order is correct.
+    """
+    scheme = SignatureScheme("Dilithium3")
+    keys = scheme.generate_keypair()
+
+    msg = b"parameter order test"
+
+    # sign takes (secret_key, message)
+    sig = scheme.sign(keys.secret_key, msg)
+
+    # verify takes (public_key, message, signature)
+    assert scheme.verify(keys.public_key, msg, sig)
+
+    # Wrong key should fail
+    other_keys = scheme.generate_keypair()
+    assert not scheme.verify(other_keys.public_key, msg, sig)
