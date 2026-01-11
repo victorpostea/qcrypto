@@ -6,12 +6,18 @@ import base64
 from pathlib import Path
 from .keywrap import encrypt_private_key, decrypt_private_key
 from typing import Optional
+from .armor import armor_encode, armor_decode, looks_armored
+from .fingerprints import key_fingerprint
 
 
 @dataclass
 class KyberKeypair:
     public_key: bytes
     private_key: bytes
+
+    def fingerprint(self) -> str:
+        """Stable fingerprint for the public key (SHA256(pubkey)[:16])."""
+        return key_fingerprint(self.public_key)
 
 
 class KyberKEM:
@@ -72,9 +78,15 @@ class KyberKEM:
         else:
             raise ValueError("encoding must be 'raw' or 'base64'")
 
-    def save_public_key(self, path="public.key", encoding="raw"):
+    def save_public_key(self, path="public.key", encoding:str = "raw"):
         if self._public_key is None:
             raise ValueError("Generate a keypair first.")
+
+        if encoding == "armor":
+            text = armor_encode("QCRYPTO PUBLIC KEY", self._public_key)
+            Path(path).write_text(text, encoding="utf-8")
+            return
+
         Path(path).write_bytes(self._encode(self._public_key, encoding))
 
     def save_private_key(
@@ -83,30 +95,39 @@ class KyberKEM:
         encoding: str = "raw",
         passphrase: Optional[str] = None,
     ):
-        """
-        Save private key to disk.
-        If passphrase is provided, encrypt the raw private key before writing.
-        Encoding applies only to unencrypted keys.
-        """
-
         if self._private_key is None:
             raise ValueError("Generate a keypair first.")
 
         key_bytes = self._private_key
 
         if passphrase:
-            # Encrypt raw key (encoding ignored — encrypted keys are binary)
             key_bytes = encrypt_private_key(key_bytes, passphrase)
-        else:
-            # Apply raw/base64 encoding only when NOT encrypted
-            key_bytes = self._encode(key_bytes, encoding)
+            if encoding == "armor":
+                text = armor_encode("QCRYPTO ENCRYPTED PRIVATE KEY", key_bytes)
+                Path(path).write_text(text, encoding="utf-8")
+                return
 
-        Path(path).write_bytes(key_bytes)
+            # encrypted keys written as binary by default
+            Path(path).write_bytes(key_bytes)
+            return
+
+        # unencrypted
+        if encoding == "armor":
+            text = armor_encode("QCRYPTO PRIVATE KEY", key_bytes)
+            Path(path).write_text(text, encoding="utf-8")
+            return
+
+        Path(path).write_bytes(self._encode(key_bytes, encoding))
 
 
     @staticmethod
     def load_public_key(path="public.key", encoding="raw"):
         data = Path(path).read_bytes()
+
+        if looks_armored(data):
+            label, raw = armor_decode(data, expected_label="QCRYPTO PUBLIC KEY")
+            return raw
+
         return KyberKEM._decode(data, encoding)
 
     @staticmethod
@@ -115,19 +136,22 @@ class KyberKEM:
         encoding: str = "raw",
         passphrase: Optional[str] = None,
     ) -> bytes:
-        """
-        Load a private key from disk.
-        If passphrase is provided, attempt decrypting the encrypted key.
-        If not encrypted, fall back to raw/base64 decoding.
-        """
-
         data = Path(path).read_bytes()
 
+        if looks_armored(data):
+            label, raw = armor_decode(data)
+            if label == "QCRYPTO ENCRYPTED PRIVATE KEY":
+                if not passphrase:
+                    raise ValueError("Private key is encrypted. Provide --pass.")
+                return decrypt_private_key(raw, passphrase)
+            if label == "QCRYPTO PRIVATE KEY":
+                return raw
+            raise ValueError(f"Unknown private key armor label: {label}")
+
+        # non-armored behavior stays the same
         if passphrase:
-            # Try decrypting as a passphrase-protected key
             return decrypt_private_key(data, passphrase)
 
-        # Otherwise treat as standard raw/base64 key
         return KyberKEM._decode(data, encoding)
 
 class ClassicMcElieceKEM(KyberKEM):
