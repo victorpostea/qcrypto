@@ -35,11 +35,11 @@ class DilithiumSig:
             sk = sig.export_secret_key()
             return DilithiumKeypair(pk, sk)
 
-    def sign(self, message: bytes, secret_key: bytes) -> bytes:
+    def sign(self, secret_key: bytes, message: bytes) -> bytes:
         with oqs.Signature(self.alg, secret_key=secret_key) as sig:
             return sig.sign(message)
 
-    def verify(self, message: bytes, signature: bytes, public_key: bytes) -> bool:
+    def verify(self, public_key: bytes, message: bytes, signature: bytes) -> bool:
         with oqs.Signature(self.alg) as sig:
             return sig.verify(message, signature, public_key)
 
@@ -66,11 +66,11 @@ class SignatureScheme:
             sk = sig.export_secret_key()
             return SignatureKeypair(pk, sk)
 
-    def sign(self, message: bytes, secret_key: bytes) -> bytes:
+    def sign(self, secret_key: bytes, message: bytes) -> bytes:
         with oqs.Signature(self.alg, secret_key=secret_key) as sig:
             return sig.sign(message)
 
-    def verify(self, message: bytes, signature: bytes, public_key: bytes) -> bool:
+    def verify(self, public_key: bytes, message: bytes, signature: bytes) -> bool:
         with oqs.Signature(self.alg) as sig:
             return sig.verify(message, signature, public_key)
 

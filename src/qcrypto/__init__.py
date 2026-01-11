@@ -26,6 +26,8 @@ from .signatures import (
     save_signature,
     load_signature,
 )
+from .fingerprints import key_fingerprint
+
 from .hybrid import (
     encrypt,
     decrypt,
@@ -38,6 +40,7 @@ from .hybrid import (
 )
 
 __all__ = [
+    "key_fingerprint",
     # KEMs
     "KyberKEM",
     "KyberKeypair",

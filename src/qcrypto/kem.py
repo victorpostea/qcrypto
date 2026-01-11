@@ -7,12 +7,17 @@ from pathlib import Path
 from .keywrap import encrypt_private_key, decrypt_private_key
 from typing import Optional
 from .armor import armor_encode, armor_decode, looks_armored
+from .fingerprints import key_fingerprint
 
 
 @dataclass
 class KyberKeypair:
     public_key: bytes
     private_key: bytes
+
+    def fingerprint(self) -> str:
+        """Stable fingerprint for the public key (SHA256(pubkey)[:16])."""
+        return key_fingerprint(self.public_key)
 
 
 class KyberKEM:

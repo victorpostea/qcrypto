@@ -5,6 +5,7 @@ from getpass import getpass
 from typing import Optional
 
 from . import KyberKEM, encrypt_file, decrypt_file
+from .fingerprints import key_fingerprint
 from .signatures import (
     SignatureScheme,
     save_signature_public_key,
@@ -85,8 +86,11 @@ def cmd_gen_key(args):
     kem.save_public_key(str(pub_path), encoding=encoding)
     kem.save_private_key(str(priv_path), encoding=encoding, passphrase=passphrase)
 
+    fp = key_fingerprint(KyberKEM.load_public_key(str(pub_path)))
+
     print("Generated Kyber768 keypair:")
     print(f"  Public key:  {pub_path}")
+    print(f"  Fingerprint: {fp}")
     print(f"  Private key: {priv_path}")
     if args.armored:
         print("  (ASCII-armored)")
@@ -105,7 +109,9 @@ def cmd_encrypt(args):
         print("Run: qcrypto gen-key")
         sys.exit(1)
 
-    pub = pub_path.read_bytes()
+    pub = KyberKEM.load_public_key(str(pub_path))
+    fp = key_fingerprint(pub)
+    print(f"Encrypting for key: {fp}")
     input_path = Path(args.input)
     output_path = Path(args.output)
 
@@ -186,9 +192,12 @@ def cmd_sig_gen_key(args):
         passphrase=passphrase,
     )
 
+    fp = key_fingerprint(load_signature_public_key(str(pub_path))[1])
+
     print("Generated signature keypair:")
     print(f"  Algorithm:   {alg}")
     print(f"  Public key:  {pub_path}")
+    print(f"  Fingerprint: {fp}")
     print(f"  Private key: {priv_path}")
     if args.armored:
         print("  (ASCII-armored)")
@@ -293,6 +302,7 @@ def cmd_verify(args):
 
     try:
         pk_alg, pk = _load_sig_public_key_or_raw(pub_path, alg_hint=args.alg)
+        fp = key_fingerprint(pk)
         sig_alg, sig_bytes = _load_signature_or_raw(sig_path, alg_hint=args.alg)
     except Exception as e:
         print(str(e))
@@ -311,6 +321,8 @@ def cmd_verify(args):
     msg = input_path.read_bytes()
     scheme = SignatureScheme(alg)
     ok = scheme.verify(msg, sig_bytes, pk)
+
+    print(f"Public key fingerprint: {fp}")
 
     if ok:
         print("OK: signature valid")
